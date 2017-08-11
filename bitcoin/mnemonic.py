@@ -73,7 +73,7 @@ def words_verify(words,wordlist=wordlist_english):
 	ebytes=_eint_to_bytes(eint,entropy_bits)
 	return csint == entropy_cs(ebytes)
 
-def mnemonic_to_seed(mnemonic_phrase,passphrase=u''):
+def mnemonic_to_seed(mnemonic_phrase,passphrase=b''):
 	try:
 		from hashlib import pbkdf2_hmac
 		def pbkdf2_hmac_sha256(password,salt,iters=2048):
@@ -95,7 +95,7 @@ def mnemonic_to_seed(mnemonic_phrase,passphrase=u''):
 			except:
 				raise RuntimeError("No implementation of pbkdf2 was found!")
 
-	return pbkdf2_hmac_sha256(password=mnemonic_phrase,salt='mnemonic'+passphrase)
+	return pbkdf2_hmac_sha256(password=mnemonic_phrase,salt=b'mnemonic'+passphrase)
 
 def words_mine(prefix,entbits,satisfunction,wordlist=wordlist_english,randombits=random.getrandbits):
 	prefix_bits=len(prefix)*11
