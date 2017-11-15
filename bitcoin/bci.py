@@ -100,6 +100,27 @@ def parse_addr_args(*args):
 
 
 # Gets the unspent outputs of one or more addresses
+def bch_unspent(*args):
+    addrs, network = parse_addr_args(*args)
+    u = []
+    for a in addrs:
+        try:
+            data = make_request('https://blockdozer.com/insight-api/addr/'+a+'/utxo?noCache=1')
+        except Exception as e:
+            if str(e) == 'No free outputs to spend':
+                continue
+            else:
+                raise Exception(e)
+        jsonobj = json.loads(data.decode("utf-8"))
+        for o in jsonobj:
+            h = o['txid']
+            u.append({
+                "output": h+':'+str(o['vout']),
+                "value": o['satoshis']
+            })
+    return u
+
+
 def bci_unspent(*args):
     addrs, network = parse_addr_args(*args)
     u = []
@@ -185,6 +206,7 @@ def helloblock_unspent(*args):
 
 
 unspent_getters = {
+    'bch': bch_unspent,
     'bci': bci_unspent,
     'blockr': blockr_unspent,
     'helloblock': helloblock_unspent
@@ -192,13 +214,72 @@ unspent_getters = {
 
 
 def unspent(*args, **kwargs):
-    f = unspent_getters.get(kwargs.get('source', ''), bci_unspent)
+    f = unspent_getters.get(kwargs.get('source', ''), bch_unspent)
     return f(*args)
 
 
 # Gets the transaction output history of a given set of addresses,
 # including whether or not they have been spent
 def history(*args):
+    # Valid input formats: history([addr1, addr2,addr3])
+    #                      history(addr1, addr2, addr3)
+    if len(args) == 0:
+        return []
+    elif isinstance(args[0], list):
+        addrs = args[0]
+    else:
+        addrs = args
+
+    txs = []
+    for addr in addrs:
+        offset = 0
+        while 1:
+            gathered = False
+            while not gathered:
+                try:
+                    data = make_request(
+                        'https://blockdozer.com/insight-api/txs/?address=%s' %
+                        (addr))
+                    gathered = True
+                except Exception as e:
+                    try:
+                        sys.stderr.write(e.read().strip())
+                    except:
+                        sys.stderr.write(str(e))
+                    gathered = False
+            try:
+                jsonobj = json.loads(data.decode("utf-8"))
+            except:
+                raise Exception("Failed to decode data: "+data)
+            txs.extend(jsonobj["txs"])
+            if len(jsonobj["txs"]) < 50:
+                break
+            offset += 50
+            sys.stderr.write("Fetching more transactions... "+str(offset)+'\n')
+    outs = {}
+    for tx in txs:
+        for o in tx["vout"]:
+            if o["scriptPubKey"]["addresses"][0] in addrs:
+                key = str(tx["txid"])+':'+str(o["n"])
+                outs[key] = {
+                    "address": o["scriptPubKey"]["addresses"][0],
+                    "value": int(o["value"].replace(".", "")),
+                    "output": tx["txid"]+':'+str(o["n"]),
+                    "block_height": tx.get("blockheight", None),
+                    "spend": o["spentTxId"]+':'+ str(o["spentIndex"])
+                }
+#    for tx in txs:
+#        for i, inp in enumerate(tx["inputs"]):
+#            if "prev_out" in inp:
+#                if inp["prev_out"].get("addr", None) in addrs:
+#                    key = str(inp["prev_out"]["tx_index"]) + \
+#                        ':'+str(inp["prev_out"]["n"])
+#                    if outs.get(key):
+#                        outs[key]["spend"] = tx["hash"]+':'+str(i)
+    return [outs[k] for k in outs]
+
+
+def bci_history(*args):
     # Valid input formats: history([addr1, addr2,addr3])
     #                      history(addr1, addr2, addr3)
     if len(args) == 0:
@@ -257,6 +338,12 @@ def history(*args):
 
 
 # Pushes a transaction to the network using https://blockchain.info/pushtx
+def bch_pushtx(tx):
+    if not re.match('^[0-9a-fA-F]*$', tx):
+        tx = tx.encode('hex')
+    data = make_request('https://blockdozer.com/insight-api/tx/send', 'rawtx='+tx)
+    return data["txid"]
+
 def bci_pushtx(tx):
     if not re.match('^[0-9a-fA-F]*$', tx):
         tx = tx.encode('hex')
@@ -297,6 +384,7 @@ def helloblock_pushtx(tx):
                         'rawTxHex='+tx)
 
 pushtx_getters = {
+    'bch': bch_pushtx,
     'bci': bci_pushtx,
     'blockr': blockr_pushtx,
     'helloblock': helloblock_pushtx
@@ -304,22 +392,39 @@ pushtx_getters = {
 
 
 def pushtx(*args, **kwargs):
-    f = pushtx_getters.get(kwargs.get('source', ''), bci_pushtx)
+    f = pushtx_getters.get(kwargs.get('source', ''), bch_pushtx)
     return f(*args)
 
 
-def last_block_height(network='btc'):
+def last_block_height(network='bch'):
     if network == 'testnet':
         data = make_request('http://tbtc.blockr.io/api/v1/block/info/last')
         jsonobj = json.loads(data.decode("utf-8"))
         return jsonobj["data"]["nb"]
 
-    data = make_request('https://blockchain.info/latestblock')
+    if network == 'btc':
+        data = make_request('https://blockchain.info/latestblock')
+        jsonobj = json.loads(data.decode("utf-8"))
+        return jsonobj["height"]
+
+    data = make_request('https://blockdozer.com/insight-api/status?q=getLastBlockHash')
+    jsonobj = json.loads(data.decode("utf-8"))
+    block_hash = jsonobj["lastblockhash"]
+    data = make_request('https://blockdozer.com/insight-api/block/'+block_hash)
     jsonobj = json.loads(data.decode("utf-8"))
     return jsonobj["height"]
 
 
 # Gets a specific transaction
+def bch_fetchtx(txhash):
+    if isinstance(txhash, list):
+        return [bci_fetchtx(h) for h in txhash]
+    if not re.match('^[0-9a-fA-F]*$', txhash):
+        txhash = txhash.encode('hex')
+    data = make_request('https://blockdozer.com/insight-api/rawtx/'+txhash)
+    jsonobj = json.loads(data.decode("utf-8"))
+    return jsonobj["rawtx"]
+
 def bci_fetchtx(txhash):
     if isinstance(txhash, list):
         return [bci_fetchtx(h) for h in txhash]
@@ -390,6 +495,7 @@ def helloblock_fetchtx(txhash, network='btc'):
 
 
 fetchtx_getters = {
+    'bch': bch_fetchtx,
     'bci': bci_fetchtx,
     'blockr': blockr_fetchtx,
     'helloblock': helloblock_fetchtx
@@ -397,7 +503,7 @@ fetchtx_getters = {
 
 
 def fetchtx(*args, **kwargs):
-    f = fetchtx_getters.get(kwargs.get('source', ''), bci_fetchtx)
+    f = fetchtx_getters.get(kwargs.get('source', ''), bch_fetchtx)
     return f(*args)
 
 
