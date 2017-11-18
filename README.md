@@ -16,7 +16,8 @@
 ### Disadvantages:
 
 * Not a full node, has no idea what blocks are
-* Relies on centralized service (blockchain.info) for blockchain operations, although operations do have backups (eligius, blockr.io)
+* Relies on centralized service (blockdozer.com) for blockchain operations
+* Must use tx signing method as described in test_bitcoincash.py
 
 ### TO DO:
 
