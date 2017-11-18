@@ -1,6 +1,4 @@
-# Pybitcointools, Python library for Bitcoin signatures and transactions
-
-[![Build Status](https://travis-ci.org/Conio/pybitcointools.svg?branch=master)](https://travis-ci.org/Conio/pybitcointools)
+# Pybitcointools (BCH), Python library for Bitcoin Cash signatures and transactions
 
 ### Advantages:
 
