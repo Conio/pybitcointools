@@ -342,7 +342,8 @@ def bch_pushtx(tx):
     if not re.match('^[0-9a-fA-F]*$', tx):
         tx = tx.encode('hex')
     data = make_request('https://blockdozer.com/insight-api/tx/send', 'rawtx='+tx)
-    return data["txid"]
+    jsonobj = json.loads(data)
+    return jsonobj['txid']
 
 def bci_pushtx(tx):
     if not re.match('^[0-9a-fA-F]*$', tx):
