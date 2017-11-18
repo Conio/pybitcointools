@@ -1,6 +1,4 @@
-# Pybitcointools, Python library for Bitcoin signatures and transactions
-
-[![Build Status](https://travis-ci.org/Conio/pybitcointools.svg?branch=master)](https://travis-ci.org/Conio/pybitcointools)
+# Pybitcointools (BCH), Python library for Bitcoin Cash signatures and transactions
 
 ### Advantages:
 
@@ -18,7 +16,8 @@
 ### Disadvantages:
 
 * Not a full node, has no idea what blocks are
-* Relies on centralized service (blockchain.info) for blockchain operations, although operations do have backups (eligius, blockr.io)
+* Relies on centralized service (blockdozer.com) for blockchain operations
+* Must use tx signing method as described in test_bitcoincash.py
 
 ### TO DO:
 
