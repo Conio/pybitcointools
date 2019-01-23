@@ -2,6 +2,9 @@
 from _functools import reduce
 
 import copy
+
+from bitcoin.bech32 import bech32decode
+
 from bitcoin.main import *
 ### Hex to bin converter and vice versa for objects
 
@@ -555,7 +558,10 @@ def mktx(*args, **kwargs):
             o["value"] = val
         outobj = {}
         if "address" in o:
-            outobj["script"] = address_to_script(o["address"])
+            if o["address"][:2] in ("bc", "tb"):
+                outobj["script"] = bech32decode(o["address"])
+            else:
+                outobj["script"] = address_to_script(o["address"])
         elif "script" in o:
             outobj["script"] = o["script"]
         else:

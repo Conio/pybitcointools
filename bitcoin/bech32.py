@@ -23,10 +23,7 @@
 
 """Reference implementation for Bech32 and segwit addresses."""
 import binascii
-import sys
 from binascii import unhexlify, hexlify
-
-from bitcoin import changebase, deserialize_script, from_int_to_byte
 
 CHARSET = "qpzry9x8gf2tvdw0s3jn54khce6mua7l"
 
@@ -130,6 +127,7 @@ def encode(hrp, witver, witprog):
 
 
 def bech32encode(script: str, testnet=False):
+    from bitcoin.transaction import deserialize_script
     witnessversion, witnessprogram = deserialize_script(script)
     witnessversion = 0 if witnessversion is None else witnessversion
     assert 0 <= witnessversion <= 16
@@ -143,6 +141,7 @@ def int_to_hex(n: int) -> str:
 
 
 def bech32decode(text: str):
+    from bitcoin import from_int_to_byte
     if text[:2].lower() not in ('bc', 'tb'):
         raise ValueError('Invalid readable part')
     if len(set([t.islower() for t in text if t.isalpha()])) > 1:

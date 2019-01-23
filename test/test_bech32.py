@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from bitcoin import deserialize
+from bitcoin import deserialize, mktx
 from bitcoin.bech32 import bech32encode, bech32decode
 
 
@@ -89,3 +89,26 @@ class TestBech32(TestCase):
         with self.assertRaises(Exception):
             for vector in vectors:
                 bech32decode(vector)
+
+    def test_mktx(self):
+        address = 'tb1qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3q0sl5k7'
+        inputs = [
+            {
+                'output': 'ff'*32 + ':0',
+                'value': 100,
+                'segregated': True
+            }
+        ]
+        outputs = [
+            {
+                'value': 100,
+                'address': address
+            }
+        ]
+        tx = mktx(inputs, outputs)
+        print(tx)
+        deserialized = deserialize(tx)
+        re_encoded_address = bech32encode(deserialized['outs'][0]['script'], testnet=True)
+        assert re_encoded_address == address
+        decoded = bech32decode(re_encoded_address)
+        self.assertEqual(deserialized['outs'][0]['script'], decoded)
