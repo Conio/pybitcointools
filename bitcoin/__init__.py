@@ -9,3 +9,4 @@ from bitcoin.stealth import *
 from bitcoin.blocks import *
 from bitcoin.mnemonic import *
 from bitcoin.segwit import *
+from bitcoin.bech32 import *

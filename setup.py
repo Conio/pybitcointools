@@ -5,7 +5,7 @@ except ImportError:
     from distutils.core import setup
 
 setup(name='bitcoin',
-      version='1.0.0-segwit-conio',
+      version='1.0.1-segwit-conio',
       description='Python Bitcoin Tools',
       author='Vitalik Buterin',
       author_email='vbuterin@gmail.com',
