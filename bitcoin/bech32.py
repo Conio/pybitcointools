@@ -24,8 +24,13 @@
 """Reference implementation for Bech32 and segwit addresses."""
 import binascii
 from binascii import unhexlify, hexlify
+from enum import Enum
 
 CHARSET = "qpzry9x8gf2tvdw0s3jn54khce6mua7l"
+
+BECH32_BITCOIN_PREFIX = 'bc'
+BECH32_BITCOIN_TESTNET_PREFIX = 'tb'
+BECH32_BITCOIN_REGTEST_PREFIX = 'bcrt'
 
 
 def bech32_polymod(values):
@@ -126,14 +131,14 @@ def _encode(hrp, witver, witprog):
     return ret
 
 
-def bech32encode(script: str, testnet=False):
+def bech32encode(script: str, prefix=BECH32_BITCOIN_PREFIX):
     from bitcoin.transaction import deserialize_script
     witnessversion, witnessprogram = deserialize_script(script)
     witnessversion = 0 if witnessversion is None else witnessversion
     assert 0 <= witnessversion <= 16
     if witnessversion == 0:
         assert len(witnessprogram) == 40 or len(witnessprogram) == 64
-    return _encode(testnet and "tb" or "bc", witnessversion, bytearray(unhexlify(witnessprogram))).lower()
+    return _encode(prefix, witnessversion, bytearray(unhexlify(witnessprogram))).lower()
 
 
 def int_to_hex(n: int) -> str:
@@ -141,15 +146,25 @@ def int_to_hex(n: int) -> str:
 
 
 def bech32decode(text: str):
+    assert isinstance(text, str)
     from bitcoin import from_int_to_byte
-    if text[:2].lower() not in ('bc', 'tb'):
+    if text[:4].lower() == BECH32_BITCOIN_REGTEST_PREFIX:
+        human_readable_part_size = 4
+    elif text[:2].lower() in (
+        BECH32_BITCOIN_PREFIX,
+        BECH32_BITCOIN_TESTNET_PREFIX
+    ):
+        human_readable_part_size = 2
+    else:
         raise ValueError('Invalid readable part')
+
     if len(set([t.islower() for t in text if t.isalpha()])) > 1:
         raise ValueError('Mixed case')
     text = text.lower().encode("utf-8").decode()
-    witnessversion, wit_ordnallist = _decode(text[:2], text)
+
+    witnessversion, wit_ordnallist = _decode(text[:human_readable_part_size], text)
     if witnessversion is None and wit_ordnallist is None:
-        raise ValueError('Exception')
+        raise ValueError('Exception with %s (prefix: %s)' % (text, text[:human_readable_part_size]))
     if not witnessversion:
         assert len(wit_ordnallist) == 20 or len(wit_ordnallist) == 32
     o = ""

@@ -1,12 +1,19 @@
 from unittest import TestCase
 
-from bitcoin import deserialize, mktx
+from bitcoin import deserialize, mktx, BECH32_BITCOIN_TESTNET_PREFIX, BECH32_BITCOIN_REGTEST_PREFIX
 from bitcoin.bech32 import bech32encode, bech32decode
 
 
 class TestBech32(TestCase):
     def setUp(self):
         pass
+
+    def test_encode_decode_addresses(self):
+        addrs = ['bcrt1qs4xe0x388ygy7drku9gkf2n0emcwj5xms0tnkw']
+        print('Decoding')
+        for addr in addrs:
+            decoded = bech32decode(addr)
+            print(bech32encode(decoded, prefix=BECH32_BITCOIN_REGTEST_PREFIX))
 
     def test_encode_decode(self):
         transaction = "010000000001019fa7fad392a29f74d124a8770d24e23f0fcc3e3007e756e4114e4b950a5cf37a0200000000f" \
@@ -47,7 +54,7 @@ class TestBech32(TestCase):
         decoded_expected_address = bech32decode(expected_address)
         deserialized = deserialize(transaction)
         assert decoded_expected_address == deserialized['outs'][0]['script']
-        re_encoded_address = bech32encode(deserialized['outs'][0]['script'], testnet=True)
+        re_encoded_address = bech32encode(deserialized['outs'][0]['script'], prefix=BECH32_BITCOIN_TESTNET_PREFIX)
         assert re_encoded_address == expected_address
 
     def test_vectors(self):
@@ -108,7 +115,7 @@ class TestBech32(TestCase):
         tx = mktx(inputs, outputs)
         print(tx)
         deserialized = deserialize(tx)
-        re_encoded_address = bech32encode(deserialized['outs'][0]['script'], testnet=True)
+        re_encoded_address = bech32encode(deserialized['outs'][0]['script'], prefix=BECH32_BITCOIN_TESTNET_PREFIX)
         assert re_encoded_address == address
         decoded = bech32decode(re_encoded_address)
         self.assertEqual(deserialized['outs'][0]['script'], decoded)
