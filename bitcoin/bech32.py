@@ -104,7 +104,7 @@ def convertbits(data, frombits, tobits, pad=True):
     return ret
 
 
-def decode(hrp, addr):
+def _decode(hrp, addr):
     """Decode a segwit address."""
     hrpgot, data = bech32_decode(addr)
     if hrpgot != hrp:
@@ -119,10 +119,10 @@ def decode(hrp, addr):
     return data[0], decoded
 
 
-def encode(hrp, witver, witprog):
+def _encode(hrp, witver, witprog):
     """Encode a segwit address."""
     ret = bech32_encode(hrp, [witver] + convertbits(witprog, 8, 5))
-    assert decode(hrp, ret) is not (None, None)
+    assert _decode(hrp, ret) is not (None, None)
     return ret
 
 
@@ -133,7 +133,7 @@ def bech32encode(script: str, testnet=False):
     assert 0 <= witnessversion <= 16
     if witnessversion == 0:
         assert len(witnessprogram) == 40 or len(witnessprogram) == 64
-    return encode(testnet and "tb" or "bc", witnessversion, bytearray(unhexlify(witnessprogram))).lower()
+    return _encode(testnet and "tb" or "bc", witnessversion, bytearray(unhexlify(witnessprogram))).lower()
 
 
 def int_to_hex(n: int) -> str:
@@ -147,7 +147,7 @@ def bech32decode(text: str):
     if len(set([t.islower() for t in text if t.isalpha()])) > 1:
         raise ValueError('Mixed case')
     text = text.lower().encode("utf-8").decode()
-    witnessversion, wit_ordnallist = decode(text[:2], text)
+    witnessversion, wit_ordnallist = _decode(text[:2], text)
     if witnessversion is None and wit_ordnallist is None:
         raise ValueError('Exception')
     if not witnessversion:
