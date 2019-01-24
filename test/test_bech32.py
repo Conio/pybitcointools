@@ -1,6 +1,7 @@
 from unittest import TestCase
 
-from bitcoin import deserialize, mktx, BECH32_BITCOIN_TESTNET_PREFIX, BECH32_BITCOIN_REGTEST_PREFIX
+from bitcoin import deserialize, mktx, BECH32_BITCOIN_TESTNET_PREFIX, BECH32_BITCOIN_REGTEST_PREFIX, \
+    BECH32_BITCOIN_PREFIX
 from bitcoin.bech32 import bech32encode, bech32decode
 
 
@@ -13,7 +14,23 @@ class TestBech32(TestCase):
         print('Decoding')
         for addr in addrs:
             decoded = bech32decode(addr)
-            print(bech32encode(decoded, prefix=BECH32_BITCOIN_REGTEST_PREFIX))
+            assert addr == bech32encode(decoded, prefix=BECH32_BITCOIN_REGTEST_PREFIX)
+
+    def test_encode_decode_mainnet_addresses(self):
+        addrs = [
+            'bc1qwqdg6squsna38e46795at95yu9atm8azzmyvckulcc7kytlcckxswvvzej',
+            'bc1qepn5e55urrelwar3jnzz6w853lxz4vfpysskmmat9mk36u46cvvqtnala0',
+            'bc1qurj278havq0phe7y3heufmck246xrnxhtyx5sa92pytky655pr6qsqzzxa',
+            'bc1q9909xggg842c58v3cncp9l35vv65gxx8mu3483x3w8xvk8a8ng0stfyrd9',
+            'bc1qakft6s8shk0dgunet53pzapsuxc7ewagfj77l6j8358xt6sumtgq9g650j',
+            'bc1qkmtl43j4kqucux3tgr52wx9jqfqwy0xjyn89rldu8pm2ksneynksul2ta2',
+            'bc1qfa4ycsdv6uv774zjrtvxrp55qvg439ykre3ttm56vw2dhvk8hhnssjjyzs'
+        ]
+        print('Decoding')
+        for addr in addrs:
+            decoded = bech32decode(addr)
+            assert addr == bech32encode(decoded, prefix=BECH32_BITCOIN_PREFIX)
+
 
     def test_encode_decode(self):
         transaction = "010000000001019fa7fad392a29f74d124a8770d24e23f0fcc3e3007e756e4114e4b950a5cf37a0200000000f" \
