@@ -23,8 +23,8 @@
 
 """Reference implementation for Bech32 and segwit addresses."""
 import binascii
-from binascii import unhexlify, hexlify
-from enum import Enum
+
+from bitcoin import encode_pubkey, hash160, SIGHASH_ALL, privkey_to_pubkey, encode, hashlib, sha256
 
 CHARSET = "qpzry9x8gf2tvdw0s3jn54khce6mua7l"
 
@@ -138,7 +138,7 @@ def bech32encode(script: str, prefix=BECH32_BITCOIN_PREFIX):
     assert 0 <= witnessversion <= 16
     if witnessversion == 0:
         assert len(witnessprogram) == 40 or len(witnessprogram) == 64
-    return _encode(prefix, witnessversion, bytearray(unhexlify(witnessprogram))).lower()
+    return _encode(prefix, witnessversion, bytearray(binascii.unhexlify(witnessprogram))).lower()
 
 
 def int_to_hex(n: int) -> str:
@@ -171,3 +171,28 @@ def bech32decode(text: str):
     for ordinal in wit_ordnallist:
         o += binascii.hexlify(from_int_to_byte(ordinal)).decode()
     return int_to_hex(witnessversion + 0x50 if witnessversion else 0) + int_to_hex(int(len(o) / 2)) + o
+
+
+def pubkey_to_bech32_address(pubkey, prefix=BECH32_BITCOIN_PREFIX):
+    if isinstance(pubkey, (list, tuple)):
+        pubkey = encode_pubkey(pubkey, 'bin')
+    if len(pubkey) in [66, 130]:
+        pubkey = binascii.unhexlify(pubkey)
+        pubkey_hash = hash160(pubkey)
+        return bech32encode('0014' + pubkey_hash, prefix=prefix)
+    raise ValueError()
+
+
+def bech32_sign(tx, i, priv, amount, script=None, hashcode=SIGHASH_ALL):
+    from bitcoin import deserialize, segwit_signature_form, ecdsa_raw_sign, der_encode_sig, serialize, compress
+    i = int(i)
+    txobj = tx if isinstance(tx, dict) else deserialize(tx)
+    if len(priv) <= 33:
+        priv = binascii.hexlify(priv)
+    pub = compress(privkey_to_pubkey(priv))
+    script = script or ('76a914' + hash160(binascii.unhexlify(pub)) + '88ac')
+    signing_tx = segwit_signature_form(tx, i, script, amount, hashcode=hashcode)
+    rawsig = ecdsa_raw_sign(hashlib.sha256(hashlib.sha256(binascii.unhexlify(signing_tx)).digest()).hexdigest(), priv)
+    sig = der_encode_sig(*rawsig)+encode(hashcode, 16, 2)
+    txobj['ins'][i]['txinwitness'] = [sig, pub]
+    return serialize(txobj)

@@ -14,6 +14,7 @@ class TestBech32(TestCase):
         print('Decoding')
         for addr in addrs:
             decoded = bech32decode(addr)
+            print(decoded)
             assert addr == bech32encode(decoded, prefix=BECH32_BITCOIN_REGTEST_PREFIX)
 
     def test_encode_decode_mainnet_addresses(self):
