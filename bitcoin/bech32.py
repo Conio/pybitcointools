@@ -24,7 +24,7 @@
 """Reference implementation for Bech32 and segwit addresses."""
 import binascii
 
-from bitcoin import encode_pubkey, hash160, SIGHASH_ALL, privkey_to_pubkey, encode, hashlib, sha256
+from bitcoin import encode_pubkey, hash160, SIGHASH_ALL, privkey_to_pubkey, encode, hashlib
 
 CHARSET = "qpzry9x8gf2tvdw0s3jn54khce6mua7l"
 
@@ -195,4 +195,30 @@ def bech32_sign(tx, i, priv, amount, script=None, hashcode=SIGHASH_ALL):
     rawsig = ecdsa_raw_sign(hashlib.sha256(hashlib.sha256(binascii.unhexlify(signing_tx)).digest()).hexdigest(), priv)
     sig = der_encode_sig(*rawsig)+encode(hashcode, 16, 2)
     txobj['ins'][i]['txinwitness'] = [sig, pub]
+    return serialize(txobj)
+
+
+def bech32_script_to_address(script, prefix=BECH32_BITCOIN_PREFIX):
+    from bitcoin import sha256
+    script = binascii.unhexlify(script)
+    script_hash = sha256(script)
+    return bech32encode('0020' + script_hash, prefix=prefix)
+
+
+def bech32_multisign(tx, i, priv, amount, script, hashcode=SIGHASH_ALL):
+    from bitcoin import segwit_signature_form, ecdsa_raw_sign, der_encode_sig
+    i = int(i)
+    if len(priv) <= 33:
+        priv = binascii.hexlify(priv)
+    signing_tx = segwit_signature_form(tx, i, script, amount, hashcode=hashcode)
+    rawsig = ecdsa_raw_sign(hashlib.sha256(hashlib.sha256(binascii.unhexlify(signing_tx)).digest()).hexdigest(), priv)
+    sig = der_encode_sig(*rawsig)+encode(hashcode, 16, 2)
+    return sig
+
+
+def apply_bech32_multisignatures(tx, i, witness_program, signatures):
+    from bitcoin import deserialize, serialize
+    o = [""] + signatures + [witness_program]
+    txobj = deserialize(tx)
+    txobj['ins'][i]['txinwitness'] = o
     return serialize(txobj)

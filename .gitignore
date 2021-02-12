@@ -4,3 +4,4 @@
 bitcoin.egg-info/
 dist/
 __pycache__
+*.egg-info

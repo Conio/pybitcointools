@@ -271,7 +271,6 @@ class Test_SegregatedWitness(unittest.TestCase):
         self.assertEqual(signed, tx['signed'])
         print('[Native P2WPKH] SIGHASH_ALL OK')
 
-
     def test_native_P2WSH_SIGHASH_SINGLE(self):
         tx = TEST_CASES[1]
         deserialized = deserialize(tx['unsigned'])

@@ -182,7 +182,7 @@ def apply_multisignatures(*args):
 def apply_segwit_multisignatures(tx, i, witness_program, signatures, dummy=True, nested=False):
     o = [""] + signatures + [witness_program] if dummy else signatures + [witness_program]
     txobj = deserialize(tx)
-    txobj['ins'][i]['txinwitness'] =  o
+    txobj['ins'][i]['txinwitness'] = o
     if nested:
         redeem_script = hashlib.sha256(binascii.unhexlify(
             witness_program
