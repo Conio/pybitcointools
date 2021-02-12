@@ -86,9 +86,7 @@ def is_segwit(tx, hashcode=None):
     return tx[4:6] == b'\x00\x01'
 
 
-def segwit_signature_form(tx, i, script, amount, hashcode=SIGHASH_ALL):
-    d = deserialize(tx)
-
+def segwit_signature_form_transaction_dict(tx, i, script, amount, hashcode=SIGHASH_ALL):
     def parse_vout(o):
         return b''.join([struct.pack('<Q', o['value']),
                          struct.pack('B', len(o['script']) // 2),
@@ -97,30 +95,36 @@ def segwit_signature_form(tx, i, script, amount, hashcode=SIGHASH_ALL):
         return b''.join([binascii.unhexlify(inp['outpoint']['hash'])[::-1],
                          struct.pack('<I', (inp['outpoint']['index']))])
 
-    vin_outpoint = [binascii.unhexlify(d['ins'][i]['outpoint']['hash'])[::-1],
-                    struct.pack('<I', (d['ins'][i]['outpoint']['index']))]
+    vin_outpoint = [binascii.unhexlify(tx['ins'][i]['outpoint']['hash'])[::-1],
+                    struct.pack('<I', (tx['ins'][i]['outpoint']['index']))]
     hashcode_strategy = get_hashcode_strategy(hashcode)
-    outpoints = [parse_vin(inp) for inp in hashcode_strategy.get_inputs_for_sequences(d, i)]
-    sequences = hashcode_strategy.get_sequences(d, i)
-    outputs_to_sign = hashcode_strategy.get_outputs(d, i)
+    outpoints = [parse_vin(inp) for inp in hashcode_strategy.get_inputs_for_sequences(tx, i)]
+    sequences = hashcode_strategy.get_sequences(tx, i)
+    outputs_to_sign = hashcode_strategy.get_outputs(tx, i)
     outputs = [parse_vout(out) for out in outputs_to_sign]
 
     hash_outputs = hashlib.sha256(hashlib.sha256(b''.join(outputs)).digest()).digest() if outputs_to_sign else b'\x00'*32
     hash_sequences = hashlib.sha256(hashlib.sha256(b''.join(sequences)).digest()).digest() if sequences else b'\x00'*32
     hash_outpoints = hashlib.sha256(hashlib.sha256(b''.join(outpoints)).digest()).digest() if outpoints else b'\x00'*32
 
-    preimage = [struct.pack('<I', d['version']),
+    preimage = [struct.pack('<I', tx['version']),
                 hash_outpoints,
                 hash_sequences,
                 b''.join(vin_outpoint),
                 struct.pack('B', len(script) // 2),
                 binascii.unhexlify(script),
                 struct.pack('<Q', amount),
-                struct.pack('<I', d['ins'][i]['sequence']),
+                struct.pack('<I', tx['ins'][i]['sequence']),
                 hash_outputs,
-                struct.pack('<I', d['locktime']),
+                struct.pack('<I', tx['locktime']),
                 struct.pack('<I', hashcode)]
     return binascii.hexlify(b''.join(preimage)).decode('ascii')
+
+
+def segwit_signature_form(tx, i, script, amount, hashcode=SIGHASH_ALL):
+    return segwit_signature_form_transaction_dict(
+        deserialize(tx), i, script, amount, hashcode=hashcode
+    )
 
 
 def segwit_txhash(tx):
@@ -133,11 +137,18 @@ def segwit_txhash(tx):
 
 
 def strip_witness_data(tx):
-    tx = deserialize(tx)
-    tx.pop('segwit', '')
-    for inp in tx['ins']:
+    return serialize(
+        strip_witness_deserialized_data(
+            deserialize(tx)
+        )
+    )
+
+
+def strip_witness_deserialized_data(tx_dict):
+    tx_dict.pop('segwit', '')
+    for inp in tx_dict['ins']:
         inp.pop('txinwitness', '')
-    return serialize(tx)
+    return tx_dict
 
 
 def segwit_sign(tx, i, priv, amount, hashcode=SIGHASH_ALL, script=None, separator_index=None):
@@ -180,9 +191,18 @@ def apply_multisignatures(*args):
 
 
 def apply_segwit_multisignatures(tx, i, witness_program, signatures, dummy=True, nested=False):
-    o = [""] + signatures + [witness_program] if dummy else signatures + [witness_program]
     txobj = deserialize(tx)
-    txobj['ins'][i]['txinwitness'] = o
+    signed = apply_segwit_multisignatures_deserialized_data(
+        txobj, i, witness_program, signatures, dummy=dummy, nested=nested
+    )
+    return serialize(signed)
+
+
+def apply_segwit_multisignatures_deserialized_data(
+    deserialized_tx, i, witness_program, signatures, dummy=True, nested=True
+):
+    o = [""] + signatures + [witness_program] if dummy else signatures + [witness_program]
+    deserialized_tx['ins'][i]['txinwitness'] = o
     if nested:
         redeem_script = hashlib.sha256(binascii.unhexlify(
             witness_program
@@ -190,8 +210,8 @@ def apply_segwit_multisignatures(tx, i, witness_program, signatures, dummy=True,
         length = len(redeem_script) // 2
         redeem_script = serialize_script(
             [length + 2, None, redeem_script])
-        txobj["ins"][i]["script"] = redeem_script
-    return serialize(txobj)
+        deserialized_tx["ins"][i]["script"] = redeem_script
+    return deserialized_tx
 
 
 def segwit_strip_script_separator(script, index=0):
