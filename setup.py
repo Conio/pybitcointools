@@ -4,8 +4,8 @@ try:
 except ImportError:
     from distutils.core import setup
 
-setup(name='bitcoin',
-      version='1.0.7-segwit-conio',
+setup(name='conio-bitcoin',
+      version='1.0.8',
       description='Python Bitcoin Tools',
       author='Vitalik Buterin',
       author_email='vbuterin@gmail.com',
