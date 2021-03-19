@@ -173,20 +173,18 @@ def signature_form(tx, i, script, hashcode=SIGHASH_ALL):
 
     newtx = copy.deepcopy(tx)
     for inp in newtx["ins"]:
-        inp["script"] =  ""
+        inp["script"] = ""
     newtx["ins"][i]["script"] = script
 
-    if hashcode == SIGHASH_NONE:
-        newtx["outs"] = []
-    elif hashcode == SIGHASH_SINGLE:
+    if hashcode == SIGHASH_SINGLE:
         newtx["outs"] = newtx["outs"][:len(newtx["ins"])]
         for out in newtx["outs"][:len(newtx["ins"]) - 1]:
             out['value'] = 2**64 - 1
             out['script'] = ""
-    elif hashcode == SIGHASH_ANYONECANPAY:
+    elif hashcode & SIGHASH_NONE:
+        newtx["outs"] = []
+    if hashcode & SIGHASH_ANYONECANPAY:
         newtx["ins"] = [newtx["ins"][i]]
-    else:
-        pass
     return newtx
 
 
