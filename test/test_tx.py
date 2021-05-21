@@ -30,6 +30,8 @@ class TestTransaction(unittest.TestCase):
         tx2 = apply_multisignatures(tx1, 0, mscript, [sig1, sig3])
         print('end %s' % (time.time() - start))
 
+        from bitcoin import pubkey_to_address, script_to_address
+
     # https://github.com/vbuterin/pybitcointools/issues/71
     def test_multisig(self):
         start = time.time()
