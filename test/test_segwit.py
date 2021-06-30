@@ -1,4 +1,6 @@
 import unittest
+
+import bitcoin
 from bitcoin import deserialize, segwit_sign, mktx, serialize, SIGHASH_ALL, p2pk_sign, \
     strip_witness_data, privtopub, segwit_multisign, \
     apply_segwit_multisignatures, SIGHASH_SINGLE, SIGHASH_ANYONECANPAY, mk_multisig_script, \
@@ -423,5 +425,18 @@ class Test_SegregatedWitness(unittest.TestCase):
         self.assertEqual(signed, tx['signed'])
         print('[P2WSH 6-of-6 multisig NESTED in P2SH] SIGHASH_SINGLE\SIGHASH_ALL\SIGHASH_NONE & ANYONECANPAY')
 
+    def test_strip_witness_data(self):
+        tx = '010000000001000000000000000017a9140c1ca20d939dab33b3bc97c7afd1cd9a47bd817b8700000000'
+        deserialized = bitcoin.deserialize(tx)
+        print(deserialized)
+        #bitcoin.strip_witness_data(tx)
+        x = "010000000001015db5dc862868c35854cf987cc926d3184913d592d5d2e75a6a40cb304047d7170000000000fdffffff0270460d000000000022002023a714e47dfa0e29b3d0a3d97c352f18b49d8c5b4786500ec3b64280628af9f342260000000000002200205b3f2605d30023c8f56759ee3ccbeb86e22bf9ae8f262a66ce90eb12ceb96b5b040047304402206ec9d8923d331b985a38c59e324b43716bcdda0d14d9f88b1ba488b3d67404bc02202771d4ed7aae55fd2e1f11acedd38dfcfd00051b77e152496762f5efcefd64b701483045022100b52c4efd67eff8d63269876ef6dc0b3f77bb738bca4a73281400041b0c79c94002207f9b6019e16f15a4770a98718ebed2e97c079d6bf47729bac45ce9695b5cc4210169522103b6213add5c25b1753f8c4cf1c6886082b2102faaee42519c2c08b3e4ec6564f22102dd4140b47bdea1d0d283f2ded030635f549389ecfc3470e343921df24bce31982103f70d869176ab1c57b16f79b5f0505c0d90ee1f7ea0b6f473d4f82c2d6beff4f853ae00000000"
+        y = bitcoin.deserialize(x)
+        for i, x in enumerate(y['ins']):
+            y['ins'][i]['txinwitness'] = []
+        print('ddd', bitcoin.serialize(y))
+
+
 if __name__ == '__main__':
     unittest.main()
+

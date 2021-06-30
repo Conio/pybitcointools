@@ -32,6 +32,17 @@ BECH32_BITCOIN_PREFIX = 'bc'
 BECH32_BITCOIN_TESTNET_PREFIX = 'tb'
 BECH32_BITCOIN_REGTEST_PREFIX = 'bcrt'
 
+BECH32_CUSTOM_SIGNET_PREFIX = 'cbc'
+BECH32_CUSTOM_SIGNET_TESTNET_PREFIX = 'cbt'
+
+BECH32_PREFIXES = [
+    BECH32_CUSTOM_SIGNET_TESTNET_PREFIX,
+    BECH32_CUSTOM_SIGNET_PREFIX,
+    BECH32_BITCOIN_PREFIX,
+    BECH32_BITCOIN_TESTNET_PREFIX,
+    BECH32_BITCOIN_REGTEST_PREFIX
+]
+
 
 def bech32_polymod(values):
     """Internal function that computes the Bech32 checksum."""
@@ -155,6 +166,11 @@ def bech32decode(text: str):
         BECH32_BITCOIN_TESTNET_PREFIX
     ):
         human_readable_part_size = 2
+    elif text[:3].lower() in (
+        BECH32_CUSTOM_SIGNET_PREFIX,
+        BECH32_CUSTOM_SIGNET_TESTNET_PREFIX
+    ):
+        human_readable_part_size = 3
     else:
         raise ValueError('Invalid readable part')
 

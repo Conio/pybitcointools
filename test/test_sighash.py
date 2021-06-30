@@ -63,3 +63,13 @@ class TestTransaction(unittest.TestCase):
         sig2 = bech32_multisign(transaction_to_sign, 0, priv2, int(amount * 10 ** 8), witness_program)
         tx = apply_bech32_multisignatures(transaction_to_sign, 0, witness_program, [sig1, sig2])
         print(tx)
+
+    def test_hash_opreturn(self):
+        tx = '0100000000010122371ebb7a0432f0d506c35c8a78da70d29258dd50fc870426b3ced80839ebe50100000000fdffffff03983a00000000000017a9148380f47f331682e3683cc0628b04d3e1c918af8887464d00000000000017a914cc2008ff35eea6390b32dde0cf5998fd1016fcec8700000000000000005100160014636f6e696f5f66726f7a656e5f6f75747075747301010102040100000020e5eb3908d8ceb3260487fc50dd5892d270da788a5cc306d5f032047abb1e372202010008de8700000000000002020002000000000000'
+        txhash = bitcoin.segwit_txhash(tx)
+        print(txhash)
+        des_tx = bitcoin.deserialize(tx)
+        des_tx['outs'] = des_tx['outs'][:-1]
+        tx2 = bitcoin.serialize(des_tx)
+        txhash = bitcoin.segwit_txhash(tx2)
+        print(txhash)
