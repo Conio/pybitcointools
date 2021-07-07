@@ -3,8 +3,7 @@ from _functools import reduce
 
 import copy
 
-from bitcoin.bech32 import bech32decode, BECH32_BITCOIN_PREFIX, BECH32_BITCOIN_REGTEST_PREFIX, \
-    BECH32_BITCOIN_TESTNET_PREFIX, bech32encode, pubkey_to_bech32_address, BECH32_PREFIXES
+from bitcoin.bech32 import bech32decode, BECH32_PREFIXES
 
 from bitcoin.main import *
 ### Hex to bin converter and vice versa for objects
@@ -290,7 +289,7 @@ def mk_scripthash_script(addr):
 
 
 def address_to_script(addr):
-    if addr[0] == '3' or addr[0] == '2':
+    if addr[0] in ('2', '3', 'S'):
         return mk_scripthash_script(addr)
     else:
         return mk_pubkey_script(addr)
@@ -298,29 +297,10 @@ def address_to_script(addr):
 # Output script to address representation
 
 
-def script_to_address(script, vbyte=0, regtest=False):
-    b32_prefix = {
-        0: {
-            False: BECH32_BITCOIN_PREFIX
-        },
-        5: {
-            False: BECH32_BITCOIN_PREFIX
-        },
-        111: {
-            True: BECH32_BITCOIN_REGTEST_PREFIX,
-            False: BECH32_BITCOIN_TESTNET_PREFIX
-        },
-        196: {
-            True: BECH32_BITCOIN_REGTEST_PREFIX,
-            False: BECH32_BITCOIN_TESTNET_PREFIX
-        }
-    }[vbyte][regtest]
+def script_to_address(script, vbyte=0):
+
     if re.match('^[0-9a-fA-F]*$', script):
         script = binascii.unhexlify(script)
-    if script[:2] == b'\x00\x20':
-        return bech32encode(script.hex(), b32_prefix)
-    if script[:2] == b'\x00\x14':
-        return bech32encode(script.hex(), b32_prefix)
     if script[:3] == b'\x76\xa9\x14' and script[-2:] == b'\x88\xac' and len(script) == 25:
         return bin_to_b58check(script[3:-2], vbyte)  # pubkey hash addresses
     else:
