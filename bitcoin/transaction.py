@@ -297,7 +297,7 @@ def address_to_script(addr):
 # Output script to address representation
 
 
-def scripthash_to_address(script: str, b58_vbyte: int, b32_prefix: str):
+def scripthash_to_address(script: str, b58_vbyte: int, scripthash_byte: int, b32_prefix: str):
     if re.match('^[0-9a-fA-F]*$', script):
         script = binascii.unhexlify(script)
     if script[:2] == b'\x00\x20':
@@ -308,20 +308,10 @@ def scripthash_to_address(script: str, b58_vbyte: int, b32_prefix: str):
     if script[:3] == b'\x76\xa9\x14' and script[-2:] == b'\x88\xac' and len(script) == 25:
         return bin_to_b58check(script[3:-2], b58_vbyte)  # pubkey hash addresses
     else:
-        if b58_vbyte in [111, 196]:
-            # Testnet
-            scripthash_byte = 196
-        elif b58_vbyte == 0:
-            # Mainnet
-            scripthash_byte = 5
-        else:
-            scripthash_byte = b58_vbyte
-        # BIP0016 scripthash addresses
         return bin_to_b58check(script[2:-1], scripthash_byte)
 
 
 def script_to_address(script, vbyte=0):
-
     if re.match('^[0-9a-fA-F]*$', script):
         script = binascii.unhexlify(script)
     if script[:3] == b'\x76\xa9\x14' and script[-2:] == b'\x88\xac' and len(script) == 25:
