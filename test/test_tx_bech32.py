@@ -101,45 +101,7 @@ class TestTransaction(unittest.TestCase):
         print(tx)
 
     def test_oldscriptoaddr(self):
-
-        def _script_to_address(script, vbyte=0, regtest=False):
-            b32_prefix = {
-                0: {
-                    False: BECH32_BITCOIN_PREFIX
-                },
-                5: {
-                    False: BECH32_BITCOIN_PREFIX
-                },
-                111: {
-                    True: BECH32_BITCOIN_REGTEST_PREFIX,
-                    False: BECH32_BITCOIN_TESTNET_PREFIX
-                },
-                196: {
-                    True: BECH32_BITCOIN_REGTEST_PREFIX,
-                    False: BECH32_BITCOIN_TESTNET_PREFIX
-                }
-            }[vbyte][regtest]
-            if re.match('^[0-9a-fA-F]*$', script):
-                script = binascii.unhexlify(script)
-            if script[:2] == b'\x00\x20':
-                return bech32encode(script.hex(), b32_prefix)
-            if script[:2] == b'\x00\x14':
-                return bech32encode(script.hex(), b32_prefix)
-            if script[:3] == b'\x76\xa9\x14' and script[-2:] == b'\x88\xac' and len(script) == 25:
-                return bin_to_b58check(script[3:-2], vbyte)  # pubkey hash addresses
-            else:
-                if vbyte in [111, 196]:
-                    # Testnet
-                    scripthash_byte = 196
-                elif vbyte == 0:
-                    # Mainnet
-                    scripthash_byte = 5
-                else:
-                    scripthash_byte = vbyte
-                # BIP0016 scripthash addresses
-                return bin_to_b58check(script[2:-1], scripthash_byte)
-
-        scripts =  {
+        scripts = {
             '00201863143c14c5166804bd19203356da136c985678cd4d27a1b8c6329604903262': [
                 'tb1qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3q0sl5k7',
                 196, False, BECH32_BITCOIN_TESTNET_PREFIX
@@ -159,7 +121,7 @@ class TestTransaction(unittest.TestCase):
         }
 
         for script in scripts:
-            resp = _script_to_address(script, vbyte=scripts[script][1], regtest=scripts[script][2])
+            resp = scripthash_to_address(script, scripts[script][1], scripts[script][3])
             self.assertEqual(scripts[script][0], resp)
             b32_resp = bech32_scripthash_to_address(script, prefix=scripts[script][3])
             self.assertEqual(b32_resp, resp)
