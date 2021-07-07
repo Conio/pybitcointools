@@ -1,7 +1,7 @@
 from unittest import TestCase
 
 from bitcoin import deserialize, mktx, BECH32_BITCOIN_TESTNET_PREFIX, BECH32_BITCOIN_REGTEST_PREFIX, \
-    BECH32_BITCOIN_PREFIX
+    BECH32_BITCOIN_PREFIX, BECH32_CUSTOM_SIGNET_TESTNET_PREFIX
 from bitcoin.bech32 import bech32encode, bech32decode, BECH32_CUSTOM_SIGNET_PREFIX
 
 
@@ -150,3 +150,14 @@ class TestBech32(TestCase):
         assert re_encoded_address == address
         decoded = bech32decode(re_encoded_address)
         self.assertEqual(deserialized['outs'][0]['script'], decoded)
+
+    def test_decode_signet_tx(self):
+        tx = '020000000001010000000000000000000000000000000000000000000000000000000000000000ffffffff035a0101ff' \
+             'ffffff020000000000000000160014a9c2890e5726fc19728a441a808728f130c51ff20000000000000000266a24aa21' \
+             'a9ede2f61c3f71d1defd3fa999dfa36953755c690689799962b48bebd836974e8cf90120000000000000000000000000' \
+             '000000000000000000000000000000000000000000000000'
+        des = deserialize(tx)
+        self.assertEqual(
+            bech32encode(des['outs'][0]['script'], BECH32_CUSTOM_SIGNET_TESTNET_PREFIX),
+            'cbt1q48pgjrjhym7pju52gsdgppeg7ycv28ljv3tr5h'
+        )

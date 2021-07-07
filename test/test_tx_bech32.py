@@ -80,3 +80,22 @@ class TestTransaction(unittest.TestCase):
             "7366c0863d655d03a00e5f3c4bbbd121023f96141f1bec4df22465539ecd807762e2c96b75e436540d3e"
             "7654d461b62a1953ae00000000"
         )
+
+    def test_signet(self):
+        priv = 'bLnPotUnS3sQRefhjFPFNcJ5WS92ajuGtpsrGrqcu8reweQCiJpt'
+        privhex = encode_privkey(decode_privkey(priv), 'hex', vbyte=0x6f)
+        pub = compress(privtopub(privhex))
+        addr = pubkey_to_bech32_address(pub, prefix='cbt')
+        print(addr)
+        print(pub)
+        transaction_to_sign = mktx(
+            [{
+                'output': 'aef21e0003b31fc2cb8bafa83c271102b7ea06a5e70ac10deedc05fa86c0d697:0',
+                'segregated': True
+            }],
+            [
+                {'address': addr, 'value': int(200000 * 10**8)}
+            ]
+        )
+        tx = bech32_sign(transaction_to_sign, 0, privhex, int(200000 * 10**8))
+        print(tx)

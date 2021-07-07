@@ -25,3 +25,21 @@ class TestVarPybitcointoolsStuff(TestCase):
         }
         for s, a in scripts.items():
             self.assertEqual(a[0], bitcoin.script_to_address(s, a[1], regtest=a[2]))
+
+    def test_custom_signet_bip32(self):
+        seed = b'custom signet bip32'
+        print('doing')
+        priv = bitcoin.bip32_master_key(seed, vbytes=b'\x04\x35\x83\x82')
+        for path_element in [44 + 2 ** 31, 2 + 2 ** 31]:
+            priv = bitcoin.bip32_ckd(priv, path_element)
+        self.assertEqual(
+            priv,
+            'tprsZ9ywKur445iQcrHVg5LYS2jZHvK26RLvGPUiDtTuDmYV5vXGk2'
+            'BpXCPzKRwvLJyTKm1diPYWhDRRALqfsE3uoNcA7Z7GJNJ96Nai4q3fAKk'
+        )
+        pub = bitcoin.bip32_privtopub(priv)
+        self.assertEqual(
+            pub,
+            'tpqcXWEW4DmTkxsqr3pJWNdETrsxYjUYLfSi3GxWrmsQ8c1oQs1z4i'
+            'DBrqXgUbMTyugnTC3vuAnxHNVxFH7BamKwVSHEzXMchi7k6oa2p6bHWyc'
+        )
