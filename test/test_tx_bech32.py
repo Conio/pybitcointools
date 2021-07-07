@@ -99,3 +99,67 @@ class TestTransaction(unittest.TestCase):
         )
         tx = bech32_sign(transaction_to_sign, 0, privhex, int(200000 * 10**8))
         print(tx)
+
+    def test_oldscriptoaddr(self):
+
+        def _script_to_address(script, vbyte=0, regtest=False):
+            b32_prefix = {
+                0: {
+                    False: BECH32_BITCOIN_PREFIX
+                },
+                5: {
+                    False: BECH32_BITCOIN_PREFIX
+                },
+                111: {
+                    True: BECH32_BITCOIN_REGTEST_PREFIX,
+                    False: BECH32_BITCOIN_TESTNET_PREFIX
+                },
+                196: {
+                    True: BECH32_BITCOIN_REGTEST_PREFIX,
+                    False: BECH32_BITCOIN_TESTNET_PREFIX
+                }
+            }[vbyte][regtest]
+            if re.match('^[0-9a-fA-F]*$', script):
+                script = binascii.unhexlify(script)
+            if script[:2] == b'\x00\x20':
+                return bech32encode(script.hex(), b32_prefix)
+            if script[:2] == b'\x00\x14':
+                return bech32encode(script.hex(), b32_prefix)
+            if script[:3] == b'\x76\xa9\x14' and script[-2:] == b'\x88\xac' and len(script) == 25:
+                return bin_to_b58check(script[3:-2], vbyte)  # pubkey hash addresses
+            else:
+                if vbyte in [111, 196]:
+                    # Testnet
+                    scripthash_byte = 196
+                elif vbyte == 0:
+                    # Mainnet
+                    scripthash_byte = 5
+                else:
+                    scripthash_byte = vbyte
+                # BIP0016 scripthash addresses
+                return bin_to_b58check(script[2:-1], scripthash_byte)
+
+        scripts =  {
+            '00201863143c14c5166804bd19203356da136c985678cd4d27a1b8c6329604903262': [
+                'tb1qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3q0sl5k7',
+                196, False, BECH32_BITCOIN_TESTNET_PREFIX
+            ],
+            '00202a11fadf4a96c60669ae50b2ac7c0b3cae0b3d94483670504dc154a255826322': [
+              'bcrt1q9ggl4h62jmrqv6dw2ze2clqt8jhqk0v5fqm8q5zdc922y4vzvv3qj3le86',
+                196, True, BECH32_BITCOIN_REGTEST_PREFIX
+            ],
+            '00142a3af484ba735f3de4535f0fd522d4666646ef3f': [
+                'bcrt1q9ga0fp96wd0nmezntu8a2gk5venydmelf8ddtm',
+                111, True, BECH32_BITCOIN_REGTEST_PREFIX
+            ],
+            '00143262354a6825b39de7f35534ddb04f45ea7a1f43': [
+                'bc1qxf3r2jngykeemeln256dmvz0gh48586rfx4j2p',
+                0, False, BECH32_BITCOIN_PREFIX
+            ]
+        }
+
+        for script in scripts:
+            resp = _script_to_address(script, vbyte=scripts[script][1], regtest=scripts[script][2])
+            self.assertEqual(scripts[script][0], resp)
+            b32_resp = bech32_scripthash_to_address(script, prefix=scripts[script][3])
+            self.assertEqual(b32_resp, resp)

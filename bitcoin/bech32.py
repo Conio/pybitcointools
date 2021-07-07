@@ -23,6 +23,7 @@
 
 """Reference implementation for Bech32 and segwit addresses."""
 import binascii
+import re
 
 from bitcoin import encode_pubkey, hash160, SIGHASH_ALL, privkey_to_pubkey, encode, hashlib
 
@@ -219,6 +220,16 @@ def bech32_script_to_address(script, prefix=BECH32_BITCOIN_PREFIX):
     script = binascii.unhexlify(script)
     script_hash = sha256(script)
     return bech32encode('0020' + script_hash, prefix=prefix)
+
+
+def bech32_scripthash_to_address(scripthash: str, prefix=BECH32_BITCOIN_PREFIX):
+    if re.match('^[0-9a-fA-F]*$', scripthash):
+        scripthash = bytes.fromhex(scripthash)
+
+    if scripthash[:2] == b'\x00\x20':
+        return bech32encode(scripthash.hex(), prefix)
+    if scripthash[:2] == b'\x00\x14':
+        return bech32encode(scripthash.hex(), prefix)
 
 
 def bech32_multisign(tx, i, priv, amount, script, hashcode=SIGHASH_ALL):
