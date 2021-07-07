@@ -29,7 +29,7 @@ class TestVarPybitcointoolsStuff(TestCase):
     def test_custom_signet_bip32(self):
         seed = b'custom signet bip32'
         print('doing')
-        priv = bitcoin.bip32_master_key(seed, vbytes=b'\x04\x35\x83\x82')
+        priv = bitcoin.bip32_master_key(seed, vbytes=bitcoin.deterministic.CUSTOM_SIGNET_TEST_PRIVATE)
         for path_element in [44 + 2 ** 31, 2 + 2 ** 31]:
             priv = bitcoin.bip32_ckd(priv, path_element)
         self.assertEqual(
@@ -42,4 +42,22 @@ class TestVarPybitcointoolsStuff(TestCase):
             pub,
             'tpqcXWEW4DmTkxsqr3pJWNdETrsxYjUYLfSi3GxWrmsQ8c1oQs1z4i'
             'DBrqXgUbMTyugnTC3vuAnxHNVxFH7BamKwVSHEzXMchi7k6oa2p6bHWyc'
+        )
+
+    def test_custom_signet_bip32_2(self):
+        seed = b'custom signet bip32'
+        print('doing')
+        priv = bitcoin.bip32_master_key(seed, vbytes=bitcoin.deterministic.CUSTOM_SIGNET_PRIVATE)
+        for path_element in [44 + 2 ** 31, 2 + 2 ** 31]:
+            priv = bitcoin.bip32_ckd(priv, path_element)
+        self.assertEqual(
+            priv,
+            'xprg83CBNA3hpdiSFUk45g268i3CcEVHMHzVGPX8YwSTrwnxVFpR4NNzPs'
+            '3kPQVtmWBTD5JMmp3xYDBzKMcbAHJQwiaetK8w2JqNaXGEMZ1c3ck'
+        )
+        pub = bitcoin.bip32_privtopub(priv)
+        self.assertEqual(
+            pub,
+            'xpuqhJUZiindjShTtMbJWHiUL2frbALb2n1QHjYtMeMXcQUZPj3zLcr'
+            'wUdKDGoRmLv3LEnPqCZKMzWQB9f5GJbg23Cp6F7BucakeCypR7uakqJG'
         )
