@@ -289,7 +289,7 @@ def mk_scripthash_script(addr):
 
 
 def address_to_script(addr):
-    if addr[0] in ('2', '3', 'S'):
+    if addr[0] in ('2', '3', 'S', 'r'):
         return mk_scripthash_script(addr)
     else:
         return mk_pubkey_script(addr)
