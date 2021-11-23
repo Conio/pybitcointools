@@ -96,15 +96,6 @@ class TestBech32(TestCase):
             "tb1qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3q0sl5k7":
                 "00201863143c14c5166804bd19203356da136c985678cd4d27a1b8c6329604903262",
 
-            "bc1pw508d6qejxtdg4y5r3zarvary0c5xw7kw508d6qejxtdg4y5r3zarvary0c5xw7k7grplx":
-                "5128751e76e8199196d454941c45d1b3a323f1433bd6751e76e8199196d454941c45d1b3a323f1433bd6",
-
-            "BC1SW50QA3JX3S":
-                "6002751e",
-
-            "bc1zw508d6qejxtdg4y5r3zarvaryvg6kdaj":
-                "5210751e76e8199196d454941c45d1b3a323",
-
             "tb1qqqqqp399et2xygdj5xreqhjjvcmzhxw4aywxecjdzew6hylgvsesrxh6hy":
                 "0020000000c4a5cad46221b2a187905e5266362b99d5e91c6ce24d165dab93e86433"
         }
@@ -122,7 +113,10 @@ class TestBech32(TestCase):
             'tb1qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3q0sL5k7',
             'bc1zw508d6qejxtdg4y5r3zarvaryvqyzf3du',
             'tb1qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3pjxtptv',
-            'bc1gmk9yu'
+            'bc1gmk9yu',
+            'bc1pw508d6qejxtdg4y5r3zarvary0c5xw7kw508d6qejxtdg4y5r3zarvary0c5xw7k7grplx',
+            'BC1SW50QA3JX3S',
+            'bc1zw508d6qejxtdg4y5r3zarvaryvg6kdaj'
         ]
         with self.assertRaises(Exception):
             for vector in vectors:
@@ -144,7 +138,6 @@ class TestBech32(TestCase):
             }
         ]
         tx = mktx(inputs, outputs)
-        print(tx)
         deserialized = deserialize(tx)
         re_encoded_address = bech32encode(deserialized['outs'][0]['script'], prefix=BECH32_BITCOIN_TESTNET_PREFIX)
         assert re_encoded_address == address

@@ -1,7 +1,5 @@
 import unittest
 from bitcoin import *
-from bitcoin.bech32 import bech32decode
-
 
 class TestTransaction(unittest.TestCase):
     @classmethod

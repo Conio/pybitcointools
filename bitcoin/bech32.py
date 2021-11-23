@@ -27,7 +27,15 @@ import re
 
 from bitcoin import encode_pubkey, hash160, SIGHASH_ALL, privkey_to_pubkey, encode, hashlib
 
+from enum import Enum
+
+class Encoding(Enum):
+    """Enumeration type to list the various supported encodings."""
+    BECH32 = 1
+    BECH32M = 2
+
 CHARSET = "qpzry9x8gf2tvdw0s3jn54khce6mua7l"
+BECH32M_CONST = 0x2bc830a3
 
 BECH32_BITCOIN_PREFIX = 'bc'
 BECH32_BITCOIN_TESTNET_PREFIX = 'tb'
@@ -61,25 +69,43 @@ def bech32_hrp_expand(hrp):
     """Expand the HRP into values for checksum computation."""
     return [ord(x) >> 5 for x in hrp] + [0] + [ord(x) & 31 for x in hrp]
 
-
+'''
 def bech32_verify_checksum(hrp, data):
     """Verify a checksum given HRP and converted data characters."""
     return bech32_polymod(bech32_hrp_expand(hrp) + data) == 1
+'''
 
+def bech32_verify_checksum(hrp, data):
+    """Verify a checksum given HRP and converted data characters."""
+    const = bech32_polymod(bech32_hrp_expand(hrp) + data)
+    if const == 1:
+        return Encoding.BECH32
+    if const == BECH32M_CONST:
+        return Encoding.BECH32M
+    return None
 
+'''
 def bech32_create_checksum(hrp, data):
     """Compute the checksum values given HRP and data."""
     values = bech32_hrp_expand(hrp) + data
     polymod = bech32_polymod(values + [0, 0, 0, 0, 0, 0]) ^ 1
     return [(polymod >> 5 * (5 - i)) & 31 for i in range(6)]
+'''
+
+def bech32_create_checksum(hrp, data, spec):
+    """Compute the checksum values given HRP and data."""
+    values = bech32_hrp_expand(hrp) + data
+    const = BECH32M_CONST if spec == Encoding.BECH32M else 1
+    polymod = bech32_polymod(values + [0, 0, 0, 0, 0, 0]) ^ const
+    return [(polymod >> 5 * (5 - i)) & 31 for i in range(6)]
 
 
-def bech32_encode(hrp, data):
+def bech32_encode(hrp, data, spec):
     """Compute a Bech32 string given HRP and data values."""
-    combined = data + bech32_create_checksum(hrp, data)
+    combined = data + bech32_create_checksum(hrp, data, spec)
     return hrp + '1' + ''.join([CHARSET[d] for d in combined])
 
-
+'''
 def bech32_decode(bech):
     """Validate a Bech32 string, and determine HRP and data."""
     if ((any(ord(x) < 33 or ord(x) > 126 for x in bech)) or
@@ -96,6 +122,25 @@ def bech32_decode(bech):
     if not bech32_verify_checksum(hrp, data):
         return None, None
     return hrp, data[:-6]
+'''
+
+def _bech32_decode(bech):
+    """Validate a Bech32/Bech32m string, and determine HRP and data."""
+    if ((any(ord(x) < 33 or ord(x) > 126 for x in bech)) or
+            (bech.lower() != bech and bech.upper() != bech)):
+        return (None, None, None)
+    bech = bech.lower()
+    pos = bech.rfind('1')
+    if pos < 1 or pos + 7 > len(bech) or len(bech) > 90:
+        return (None, None, None)
+    if not all(x in CHARSET for x in bech[pos+1:]):
+        return (None, None, None)
+    hrp = bech[:pos]
+    data = [CHARSET.find(x) for x in bech[pos+1:]]
+    spec = bech32_verify_checksum(hrp, data)
+    if spec is None:
+        return (None, None, None)
+    return (hrp, data[:-6], spec)
 
 
 def convertbits(data, frombits, tobits, pad=True):
@@ -123,23 +168,33 @@ def convertbits(data, frombits, tobits, pad=True):
 
 def _decode(hrp, addr):
     """Decode a segwit address."""
-    hrpgot, data = bech32_decode(addr)
+    hrpgot, data, spec = _bech32_decode(addr)
     if hrpgot != hrp:
-        return None, None
+        return (None, None)
     decoded = convertbits(data[1:], 5, 8, False)
     if decoded is None or len(decoded) < 2 or len(decoded) > 40:
-        return None, None
+        return (None, None)
     if data[0] > 16:
-        return None, None
+        return (None, None)
     if data[0] == 0 and len(decoded) != 20 and len(decoded) != 32:
-        return None, None
-    return data[0], decoded
+        return (None, None)
+    if data[0] == 0 and spec != Encoding.BECH32 or data[0] != 0 and spec != Encoding.BECH32M:
+        return (None, None)
+    return (data[0], decoded)
+
+
+def _bech32_encode(hrp, data, spec):
+    """Compute a Bech32 string given HRP and data values."""
+    combined = data + bech32_create_checksum(hrp, data, spec)
+    return hrp + '1' + ''.join([CHARSET[d] for d in combined])
 
 
 def _encode(hrp, witver, witprog):
     """Encode a segwit address."""
-    ret = bech32_encode(hrp, [witver] + convertbits(witprog, 8, 5))
-    assert _decode(hrp, ret) is not (None, None)
+    spec = Encoding.BECH32 if witver == 0 else Encoding.BECH32M
+    ret = _bech32_encode(hrp, [witver] + convertbits(witprog, 8, 5), spec)
+    if _decode(hrp, ret) == (None, None):
+        return None
     return ret
 
 
@@ -155,6 +210,11 @@ def bech32encode(script: str, prefix=BECH32_BITCOIN_PREFIX):
 
 def int_to_hex(n: int) -> str:
     return binascii.hexlify(chr(n).encode()).decode()
+
+
+def segwit_scriptpubkey(witver, witprog):
+    """Construct a Segwit scriptPubKey for a given witness program."""
+    return bytes([witver + 0x50 if witver else 0, len(witprog)] + witprog)
 
 
 def bech32decode(text: str):
@@ -197,6 +257,8 @@ def pubkey_to_bech32_address(pubkey, prefix=BECH32_BITCOIN_PREFIX):
         pubkey = binascii.unhexlify(pubkey)
         pubkey_hash = hash160(pubkey)
         return bech32encode('0014' + pubkey_hash, prefix=prefix)
+    if len(pubkey) in [68]:
+        return bech32encode(pubkey, prefix=prefix)
     raise ValueError()
 
 
@@ -230,7 +292,7 @@ def bech32_scripthash_to_address(scripthash: str, prefix=BECH32_BITCOIN_PREFIX):
         return bech32encode(scripthash.hex(), prefix)
     if scripthash[:2] == b'\x00\x14':
         return bech32encode(scripthash.hex(), prefix)
-
+    raise ValueError
 
 def bech32_multisign(tx, i, priv, amount, script, hashcode=SIGHASH_ALL):
     from bitcoin import segwit_signature_form, ecdsa_raw_sign, der_encode_sig
